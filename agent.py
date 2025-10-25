@@ -3,12 +3,16 @@ import os
 from dotenv import load_dotenv
 import pandas
 import json
+from datetime import datetime
 load_dotenv()
 
 API_KEY = os.getenv("GOOGLE_API_KEY")
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain.prompts import PromptTemplate
 from playwright.async_api import async_playwright
+
+date_map = {10:"Oct", 11:"Nov", 12: "Dec"}
+today = datetime.today()
 
 
 llm = ChatGoogleGenerativeAI(
@@ -32,7 +36,10 @@ extraction_prompt = PromptTemplate.from_template(
 async def scrape_job_page(url: str):
     """Scrape a single job URL using Playwright"""
     async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=True)
+        if url.rfind("workday") != -1:
+            browser = await p.chromium.launch(headless=False)
+        else:
+            browser = await p.chromium.launch(headless=True)
         context = await browser.new_context(
             viewport={'width': 1920, 'height': 1080},
             user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
@@ -74,11 +81,14 @@ async def main():
             job_info = extract_job_info(content)
             try:
                 data = json.loads(str(job_info))
+                month = today.month
+                day = today.day
+                job_applied = f"{date_map.get(month)} {day}"
                 rows.append([
                     data.get("title", ""),
                     data.get("companyName", ""),
                     data.get("location", ""),
-                    "Oct 15",
+                    job_applied,
                     data.get("description", ""),
                     url
                 ])  
