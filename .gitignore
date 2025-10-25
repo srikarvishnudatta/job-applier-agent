@@ -1,3 +1,4 @@
 .env
 .venv
 job_links.txt
+extracted_jobs.xlsx
